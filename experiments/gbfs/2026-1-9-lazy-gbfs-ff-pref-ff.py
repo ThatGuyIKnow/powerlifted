@@ -37,7 +37,7 @@ class BaseReport(AbsoluteReport):
         "node",
     ]
 
-BENCHMARKS_DIR = Path(os.environ["BENCHMARKS_PDDL"])
+BENCHMARKS_DIR = Path(os.environ["DOWNWARD_BENCHMARKS"])
 
 NODE = platform.node()
 REMOTE = re.match(r"tetralith\d+.nsc.liu.se|n\d+", NODE)
@@ -46,9 +46,9 @@ REMOTE = re.match(r"tetralith\d+.nsc.liu.se|n\d+", NODE)
 if REMOTE:
     ENV = TetralithEnvironment(
         setup=TetralithEnvironment.DEFAULT_SETUP,
-        memory_per_cpu="2840M",
-        cpus_per_task=6,  # 6*2840 >= 16000
-        extra_options="#SBATCH --account=naiss2025-5-382")
+        memory_per_cpu="4000M",
+        cpus_per_task=8,  # 6*2840 >= 16000
+        extra_options="#SBATCH --account=naiss2025-22-1245")
     
 else:
     ENV = LocalEnvironment(processes=6)
@@ -62,13 +62,13 @@ if REMOTE:
         #("downward-benchmarks", SUITE_IPC_SATISFICING_ADL),
         #("ipc2023-learning", SUITE_IPC_LEARNING),
         #("autoscale-benchmarks-main/21.11-optimal-strips", SUITE_AUTOSCALE_OPTIMAL_STRIPS),
-        ("autoscale-benchmarks-main/21.11-agile-strips", SUITE_AUTOSCALE_AGILE_STRIPS),
+        #("autoscale-benchmarks-main/21.11-agile-strips", SUITE_AUTOSCALE_AGILE_STRIPS),
         ("htg-domains/flat", SUITE_HTG),
         #("pushworld", SUITE_PUSHWORLD),
         #("beluga2025", SUITE_BELUGA2025_SCALABILITY_DETERMINISTIC),
         #("mine-pddl", SUITE_MINEPDDL),
     ]
-    WALL_TIME_LIMIT = 10 * 60
+    WALL_TIME_LIMIT = 30 * 60
 else:
     SUITES = [
         #("downward-benchmarks", ["gripper:prob01.pddl"]), 
@@ -76,7 +76,7 @@ else:
         #("downward-benchmarks", SUITE_IPC_OPTIMAL_STRIPS_TEST),
         #("downward-benchmarks", SUITE_IPC_OPTIMAL_ADL_TEST),
         ("downward-benchmarks", SUITE_IPC_SATISFICING_STRIPS_TEST),
-        ("downward-benchmarks", SUITE_IPC_SATISFICING_ADL_TEST),
+        #("downward-benchmarks", SUITE_IPC_SATISFICING_ADL_TEST),
         #("ipc2023-learning", SUITE_IPC_LEARNING_TEST),
         #("autoscale-benchmarks-main/21.11-optimal-strips", SUITE_AUTOSCALE_OPTIMAL_STRIPS_TEST),
         #("htg-domains/flat", SUITE_HTG_TEST),
@@ -102,7 +102,7 @@ ATTRIBUTES = [
     "memory_mb",
 ]
 
-MEMORY_LIMIT = 16000
+MEMORY_LIMIT = 32000
 
 # Create a new experiment.
 exp = Experiment(environment=ENV)
@@ -110,7 +110,7 @@ exp.add_parser(SearchParser())
 
 PLANNER_DIR = str(REPO / "powerlifted.py")
 
-exp.add_resource("planner_exe", str(DIR / "gbfs-lazy-hff-pref-ff.sh"))
+exp.add_resource("planner_exe", str(DIR / "gbfs-lazy-hff.sh"))
 
 for prefix, SUITE in SUITES:
     for task in suites.build_suite(BENCHMARKS_DIR / prefix, SUITE):
