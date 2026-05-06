@@ -63,7 +63,7 @@ if REMOTE:
         #("ipc2023-learning", SUITE_IPC_LEARNING),
         #("autoscale-benchmarks-main/21.11-optimal-strips", SUITE_AUTOSCALE_OPTIMAL_STRIPS),
         #("autoscale-benchmarks-main/21.11-agile-strips", SUITE_AUTOSCALE_AGILE_STRIPS),
-        ("htg-domains/flat", SUITE_HTG),
+        ("htg-domains", SUITE_HTG),
         #("pushworld", SUITE_PUSHWORLD),
         #("beluga2025", SUITE_BELUGA2025_SCALABILITY_DETERMINISTIC),
         #("mine-pddl", SUITE_MINEPDDL),
