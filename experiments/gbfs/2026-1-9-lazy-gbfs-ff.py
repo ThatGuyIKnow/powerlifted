@@ -1,19 +1,18 @@
 #! /usr/bin/env python
 
+import os
 import platform
 import re
-import os
 import sys
-
 from pathlib import Path
 
 from downward import suites
 from downward.experiment import FastDownwardExperiment
 from downward.reports.absolute import AbsoluteReport
-from lab.environments import TetralithEnvironment, LocalEnvironment
+from lab import tools
+from lab.environments import LocalEnvironment, TetralithEnvironment
 from lab.experiment import Experiment
 from lab.reports import Attribute, geometric_mean
-from lab import tools
 
 DIR = Path(__file__).resolve().parent
 REPO = DIR.parent.parent
@@ -21,9 +20,36 @@ REPO = DIR.parent.parent
 sys.path.append(str(DIR.parent))
 
 from search_parser import SearchParser
-from suite import SUITE_CNOT_SYNTHESIS, SUITE_IPC_OPTIMAL_STRIPS, SUITE_IPC_OPTIMAL_ADL, SUITE_IPC_SATISFICING_STRIPS, SUITE_IPC_LEARNING, SUITE_AUTOSCALE_OPTIMAL_STRIPS, SUITE_AUTOSCALE_AGILE_STRIPS, SUITE_HTG, SUITE_IPC2023_NUMERIC, SUITE_PUSHWORLD, SUITE_BELUGA2025_SCALABILITY_DETERMINISTIC, SUITE_MINEPDDL, SUITE_IPC_SATISFICING_ADL
-from suite_test import SUITE_CNOT_SYNTHESIS_TEST, SUITE_IPC_OPTIMAL_STRIPS_TEST, SUITE_IPC_OPTIMAL_ADL_TEST, SUITE_IPC_SATISFICING_STRIPS_TEST, SUITE_IPC_LEARNING_TEST, SUITE_AUTOSCALE_OPTIMAL_STRIPS_TEST, SUITE_AUTOSCALE_AGILE_STRIPS_TEST, SUITE_HTG_TEST, SUITE_IPC2023_NUMERIC_TEST, SUITE_PUSHWORLD_TEST, SUITE_BELUGA2025_SCALABILITY_DETERMINISTIC_TEST, SUITE_MINEPDDL_TEST, SUITE_IPC_SATISFICING_ADL_TEST
-
+from suite import (
+    SUITE_AUTOSCALE_AGILE_STRIPS,
+    SUITE_AUTOSCALE_OPTIMAL_STRIPS,
+    SUITE_BELUGA2025_SCALABILITY_DETERMINISTIC,
+    SUITE_CNOT_SYNTHESIS,
+    SUITE_HTG,
+    SUITE_IPC2023_NUMERIC,
+    SUITE_IPC_LEARNING,
+    SUITE_IPC_OPTIMAL_ADL,
+    SUITE_IPC_OPTIMAL_STRIPS,
+    SUITE_IPC_SATISFICING_ADL,
+    SUITE_IPC_SATISFICING_STRIPS,
+    SUITE_MINEPDDL,
+    SUITE_PUSHWORLD,
+)
+from suite_test import (
+    SUITE_AUTOSCALE_AGILE_STRIPS_TEST,
+    SUITE_AUTOSCALE_OPTIMAL_STRIPS_TEST,
+    SUITE_BELUGA2025_SCALABILITY_DETERMINISTIC_TEST,
+    SUITE_CNOT_SYNTHESIS_TEST,
+    SUITE_HTG_TEST,
+    SUITE_IPC2023_NUMERIC_TEST,
+    SUITE_IPC_LEARNING_TEST,
+    SUITE_IPC_OPTIMAL_ADL_TEST,
+    SUITE_IPC_OPTIMAL_STRIPS_TEST,
+    SUITE_IPC_SATISFICING_ADL_TEST,
+    SUITE_IPC_SATISFICING_STRIPS_TEST,
+    SUITE_MINEPDDL_TEST,
+    SUITE_PUSHWORLD_TEST,
+)
 
 
 # Create custom report class with suitable info and error attributes.
@@ -38,6 +64,7 @@ class BaseReport(AbsoluteReport):
         "node",
     ]
 
+
 BENCHMARKS_DIR = Path(os.environ["DOWNWARD_BENCHMARKS"])
 
 NODE = platform.node()
@@ -49,41 +76,42 @@ if REMOTE:
         setup=TetralithEnvironment.DEFAULT_SETUP,
         memory_per_cpu="2840M",
         cpus_per_task=16,  # 16*2840 >= 32000
-        extra_options="#SBATCH --account=naiss2025-22-1245")
-    
+        extra_options="#SBATCH --account=naiss2025-22-1245",
+    )
+
 else:
     ENV = LocalEnvironment(processes=6)
 
 if REMOTE:
     SUITES = [
-        #("cnot-synthesis", SUITE_CNOT_SYNTHESIS),
-        #("downward-benchmarks", SUITE_IPC_OPTIMAL_STRIPS),
-        #("downward-benchmarks", SUITE_IPC_OPTIMAL_ADL),
-        #("downward-benchmarks", SUITE_IPC_SATISFICING_STRIPS),
-        #("downward-benchmarks", SUITE_IPC_SATISFICING_ADL),
-        #("ipc2023-learning", SUITE_IPC_LEARNING),
-        #("autoscale-benchmarks-main/21.11-optimal-strips", SUITE_AUTOSCALE_OPTIMAL_STRIPS),
-        #("autoscale-benchmarks-main/21.11-agile-strips", SUITE_AUTOSCALE_AGILE_STRIPS),
+        # ("cnot-synthesis", SUITE_CNOT_SYNTHESIS),
+        # ("downward-benchmarks", SUITE_IPC_OPTIMAL_STRIPS),
+        # ("downward-benchmarks", SUITE_IPC_OPTIMAL_ADL),
+        # ("downward-benchmarks", SUITE_IPC_SATISFICING_STRIPS),
+        # ("downward-benchmarks", SUITE_IPC_SATISFICING_ADL),
+        # ("ipc2023-learning", SUITE_IPC_LEARNING),
+        # ("autoscale-benchmarks-main/21.11-optimal-strips", SUITE_AUTOSCALE_OPTIMAL_STRIPS),
+        # ("autoscale-benchmarks-main/21.11-agile-strips", SUITE_AUTOSCALE_AGILE_STRIPS),
         ("htg-domains", SUITE_HTG),
-        #("pushworld", SUITE_PUSHWORLD),
-        #("beluga2025", SUITE_BELUGA2025_SCALABILITY_DETERMINISTIC),
-        #("mine-pddl", SUITE_MINEPDDL),
+        # ("pushworld", SUITE_PUSHWORLD),
+        # ("beluga2025", SUITE_BELUGA2025_SCALABILITY_DETERMINISTIC),
+        # ("mine-pddl", SUITE_MINEPDDL),
     ]
     WALL_TIME_LIMIT = 30 * 60
 else:
     SUITES = [
-        #("downward-benchmarks", ["gripper:prob01.pddl"]), 
-        #("cnot-synthesis", SUITE_CNOT_SYNTHESIS_TEST),
-        #("downward-benchmarks", SUITE_IPC_OPTIMAL_STRIPS_TEST),
-        #("downward-benchmarks", SUITE_IPC_OPTIMAL_ADL_TEST),
+        # ("downward-benchmarks", ["gripper:prob01.pddl"]),
+        # ("cnot-synthesis", SUITE_CNOT_SYNTHESIS_TEST),
+        # ("downward-benchmarks", SUITE_IPC_OPTIMAL_STRIPS_TEST),
+        # ("downward-benchmarks", SUITE_IPC_OPTIMAL_ADL_TEST),
         ("downward-benchmarks", SUITE_IPC_SATISFICING_STRIPS_TEST),
-        #("downward-benchmarks", SUITE_IPC_SATISFICING_ADL_TEST),
-        #("ipc2023-learning", SUITE_IPC_LEARNING_TEST),
-        #("autoscale-benchmarks-main/21.11-optimal-strips", SUITE_AUTOSCALE_OPTIMAL_STRIPS_TEST),
-        #("htg-domains/flat", SUITE_HTG_TEST),
-        #("pushworld", SUITE_PUSHWORLD_TEST),
-        #("beluga2025", SUITE_BELUGA2025_SCALABILITY_DETERMINISTIC_TEST),
-        #("mine-pddl", SUITE_MINEPDDL_TEST),
+        # ("downward-benchmarks", SUITE_IPC_SATISFICING_ADL_TEST),
+        # ("ipc2023-learning", SUITE_IPC_LEARNING_TEST),
+        # ("autoscale-benchmarks-main/21.11-optimal-strips", SUITE_AUTOSCALE_OPTIMAL_STRIPS_TEST),
+        # ("htg-domains/flat", SUITE_HTG_TEST),
+        # ("pushworld", SUITE_PUSHWORLD_TEST),
+        # ("beluga2025", SUITE_BELUGA2025_SCALABILITY_DETERMINISTIC_TEST),
+        # ("mine-pddl", SUITE_MINEPDDL_TEST),
     ]
     WALL_TIME_LIMIT = 5
 
@@ -102,9 +130,11 @@ ATTRIBUTES = [
     "invalid",
     "memory_mb",
     "score_peak_memory_usage_bytes",
+    "out_of_time",
+    "out_of_memory",
 ]
 
-MEMORY_LIMIT = 32_000 #MB
+MEMORY_LIMIT = 32_000  # MB
 
 # Create a new experiment.
 exp = Experiment(environment=ENV)
@@ -139,7 +169,9 @@ for prefix, SUITE in SUITES:
         # Every run has to have a unique id in the form of a list.
         # The algorithm name is only really needed when there are
         # multiple algorithms.
-        run.set_property("id", ["powerlifted-gbfs-lazy-hff-pref-ff", task.domain, task.problem])
+        run.set_property(
+            "id", ["powerlifted-gbfs-lazy-hff-pref-ff", task.domain, task.problem]
+        )
 
 # Add step that writes experiment files to disk.
 exp.add_step("build", exp.build)
