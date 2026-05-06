@@ -2,6 +2,7 @@
 
 from lab.parser import Parser
 
+from lab import tools
 
 def process_unsolvable(content, props):
     if props.get("exhausted", 0) or props.get("initial_pruned", 0):

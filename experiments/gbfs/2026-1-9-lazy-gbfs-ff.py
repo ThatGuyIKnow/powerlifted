@@ -101,6 +101,7 @@ ATTRIBUTES = [
     "length",
     "invalid",
     "memory_mb",
+    "score_peak_memory_usage_bytes",
 ]
 
 MEMORY_LIMIT = 32_000 #MB
