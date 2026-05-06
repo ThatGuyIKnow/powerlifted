@@ -102,11 +102,11 @@ ATTRIBUTES = [
     "memory_mb",
 ]
 
-MEMORY_LIMIT = 32000
+MEMORY_LIMIT = 32_000 #MB
 
 # Create a new experiment.
 exp = Experiment(environment=ENV)
-exp.add_parser(SearchParser())
+exp.add_parser(SearchParser(MEMORY_LIMIT * 1_000_000))
 
 PLANNER_DIR = str(REPO / "powerlifted.py")
 

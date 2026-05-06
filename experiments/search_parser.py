@@ -32,6 +32,24 @@ def compute_total_time_s(content, props):
     if "translation_time_s" in props and "search_time_s" in props:
         props["total_time_s"] = props["translation_time_s"] + props["search_time_s"]
 
+def make_add_score_peak_memory_usage_bytes(max_memory_bytes: int):
+    def add_scores(content, props):
+
+        if "peak_memory_usage_kb" not in props:
+            props[f"score_peak_memory_usage_bytes"] = 0
+            return
+        
+        success = props["coverage"] or props["unsolvable"]
+
+        props[f"score_peak_memory_usage_bytes"] = tools.compute_log_score(
+            success,
+            props.get("peak_memory_usage_kb") * 1_000,
+            lower_bound=2_000_000,
+            upper_bound=max_memory_kb,
+        )
+
+    return add_scores
+
 class SearchParser(Parser):
     """
     Goal found at: 0.00365
@@ -56,7 +74,7 @@ class SearchParser(Parser):
     Solution found.
     Iteration finished correctly.
     """
-    def __init__(self):
+    def __init__(self, max_memory_bytes: int):
         super().__init__()
         self.add_pattern("translation_time_s", r"Total translation time: (.+)s", type=float)
         self.add_pattern("search_time_s", r"Total time: (.+)", type=float)  # search_time is total time in powerlifted
@@ -78,5 +96,5 @@ class SearchParser(Parser):
         self.add_function(add_coverage)
         self.add_function(compute_total_time_s) # has to come before translating search_time to ms
         self.add_function(add_search_time_ms_per_expanded)
-
+        self.add_function(make_add_score_peak_memory_usage_bytes(max_memory_bytes))
 
