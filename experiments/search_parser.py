@@ -46,7 +46,7 @@ def make_add_score_peak_memory_usage_bytes(max_memory_bytes: int):
             success,
             props.get("peak_memory_usage_kb") * 1_000,
             lower_bound=2_000_000,
-            upper_bound=max_memory_kb,
+            upper_bound=max_memory_bytes,
         )
 
     return add_scores
