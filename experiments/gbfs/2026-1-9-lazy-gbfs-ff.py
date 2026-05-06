@@ -13,6 +13,7 @@ from downward.reports.absolute import AbsoluteReport
 from lab.environments import TetralithEnvironment, LocalEnvironment
 from lab.experiment import Experiment
 from lab.reports import Attribute, geometric_mean
+from lab import tools
 
 DIR = Path(__file__).resolve().parent
 REPO = DIR.parent.parent
