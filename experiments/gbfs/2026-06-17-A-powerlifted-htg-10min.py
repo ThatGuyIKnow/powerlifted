@@ -74,10 +74,9 @@ class ArrheniusEnvironment(SlurmEnvironment):
     MAX_TASKS = 1000
     # SLURM exports the submitting shell's environment by default (as on
     # Tetralith, which also leaves this empty), so loading modules before
-    # `uv run ...` normally suffices. For a self-contained job, set e.g.:
-    #   DEFAULT_SETUP = "module purge\nmodule load <toolchain>/<ver> <OpenMPI>/<ver>"
-    # Verify names with `module avail` on Arrhenius (MPI + uv/Python).
-    DEFAULT_SETUP = ""
+    # `uv run ...` normally suffices. gompi/2025b is Arrhenius's GCC + OpenMPI
+    # 5.0.8 toolchain (provides mpiexec); uv brings its own Python.
+    DEFAULT_SETUP = "module load gompi/2025b"
 
     @classmethod
     def is_present(cls):
