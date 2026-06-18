@@ -28,12 +28,15 @@ is comparable to the paper's Table 1.
 
 Run from the powerlifted repo root with the local uv/venv, e.g.
 
-    DOWNWARD_BENCHMARKS=/home/workbox/Projects/downward-projects/benchmarks \
-        ./experiments/gbfs/2026-06-17-A-powerlifted-htg-10min.py build start parse fetch
+    DOWNWARD_BENCHMARKS=/path/to/benchmarks \
+        uv run experiments/gbfs/2026-06-17-A-powerlifted-htg-10min.py build start parse fetch
 
-The Powerlifted binary and VAL (`validate`/`Validate`) must be on PATH (the
-wrapper gbfs-lazy-hff.sh, reused unchanged, builds the planner command and runs
-VAL). The non-REMOTE path is a small smoke subset only.
+Powerlifted is invoked directly as
+`powerlifted.py -d <domain> -i <instance> -s lazy -e ff --plan-file plan`
+(gbfs-lazy + FF), wrapped by the external memory monitor; build the search
+binary first with `./build.py`. Coverage is taken from the planner's reported
+plan -- pass `--validate` (with VAL on PATH) if VAL-verification is also wanted.
+The non-REMOTE path is a small smoke subset only.
 """
 
 import os
@@ -69,6 +72,12 @@ class ArrheniusEnvironment(SlurmEnvironment):
     DEFAULT_MEMORY_PER_CPU = "3G"
     DEFAULT_TIME_LIMIT_PER_TASK = "24:00:00"
     MAX_TASKS = 1000
+    # SLURM exports the submitting shell's environment by default (as on
+    # Tetralith, which also leaves this empty), so loading modules before
+    # `uv run ...` normally suffices. For a self-contained job, set e.g.:
+    #   DEFAULT_SETUP = "module purge\nmodule load <toolchain>/<ver> <OpenMPI>/<ver>"
+    # Verify names with `module avail` on Arrhenius (MPI + uv/Python).
+    DEFAULT_SETUP = ""
 
     @classmethod
     def is_present(cls):
@@ -129,8 +138,8 @@ ATTRIBUTES = [
 exp = Experiment(environment=ENV)
 exp.add_parser(SearchParser(MEMORY_LIMIT * 1_000_000))
 
-PLANNER_DIR = str(REPO / "powerlifted.py")
-exp.add_resource("planner_exe", str(DIR / "gbfs-lazy-hff.sh"))
+# powerlifted.py run by its real path so it resolves its own builds/ and src/.
+PLANNER = str(REPO / "powerlifted.py")
 # External memory monitor wrapper. Symlinked so it resolves its real path and
 # finds mem_monitor.py beside it in experiments/. Gives Powerlifted the same
 # OOM-robust resident-memory peak + 100 MB timeline as the distributed runs, so
@@ -145,8 +154,15 @@ for prefix, SUITE in SUITES:
         run.add_resource("problem", task.problem_file, symlink=True)
         run.add_command(
             "run_planner",
-            [PYTHON_EXE, "{mem_wrap}", "--",
-             "{planner_exe}", PLANNER_DIR, "{domain}", "{problem}"],
+            # gbfs-lazy + FF (matching the distributed planner). -d is passed
+            # explicitly rather than relying on domain auto-detection, which is
+            # fragile under lab's symlinked run dir. powerlifted.py is run by its
+            # real path so it resolves its own builds/ and src/. Wrapped by the
+            # external memory monitor (--match search catches the C++ search
+            # process even if it is not a direct descendant).
+            [PYTHON_EXE, "{mem_wrap}", "--match", "search", "--",
+             PLANNER, "-d", "{domain}", "-i", "{problem}",
+             "-s", "lazy", "-e", "ff", "--plan-file", "plan"],
             wall_time_limit=WALL_TIME_LIMIT,
             memory_limit=MEMORY_LIMIT,
         )
