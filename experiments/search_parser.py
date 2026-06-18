@@ -72,83 +72,6 @@ def out_of_time(content, props):
     props["out_of_time"] = int("timed_out" in props)
 
 
-def collect_external_memory(content, props):
-    """Parse the external memory monitor's output (run_with_mem_monitor.py).
-
-    mempeak.txt gives the busiest process's peak RSS (VmHWM), which survives an
-    OOM kill and is the same metric the distributed-tyr-c runs report -- so the
-    Powerlifted memory becomes comparable to them, rather than relying on the
-    binary's own VmPeak/peak line. memlog.csv is the per-100 MB timeline.
-
-    Sets ext_peak_memory_mb (gated on num_procs > 0), ext_mem_num_procs,
-    ext_mem_sum_peak_mb, ext_mem_steps, ext_time_to_peak_ms and ext_mem_timeline
-    (the busiest process's growth curve [[t_ms, vmhwm_mb], ...], kept in the
-    properties so it survives even if the raw CSV is not archived). All optional.
-    """
-    import csv as _csv
-    import os as _os
-
-    busiest_pid = None
-    if _os.path.exists("mempeak.txt"):
-        kv = {}
-        try:
-            with open("mempeak.txt") as f:
-                for line in f:
-                    if "=" in line:
-                        k, v = line.strip().split("=", 1)
-                        kv[k] = v
-        except OSError:
-            kv = {}
-        nprocs = None
-        if "num_procs" in kv:
-            try:
-                nprocs = int(kv["num_procs"])
-                props["ext_mem_num_procs"] = nprocs
-            except ValueError:
-                pass
-        if "busiest_pid" in kv:
-            try:
-                busiest_pid = int(kv["busiest_pid"])
-            except ValueError:
-                pass
-        if "busiest_rank_peak_mb" in kv and nprocs:
-            try:
-                props["ext_peak_memory_mb"] = float(kv["busiest_rank_peak_mb"])
-            except ValueError:
-                pass
-        if "sum_peak_mb" in kv:
-            try:
-                props["ext_mem_sum_peak_mb"] = float(kv["sum_peak_mb"])
-            except ValueError:
-                pass
-
-    if _os.path.exists("memlog.csv"):
-        try:
-            with open("memlog.csv") as f:
-                rows = list(_csv.DictReader(f))
-        except OSError:
-            rows = []
-
-        def _int(row, key):
-            try:
-                return int(row[key])
-            except (KeyError, ValueError, TypeError):
-                return None
-
-        rows = [r for r in rows if _int(r, "t_ms") is not None
-                and _int(r, "vmhwm_mb") is not None]
-        if rows:
-            props["ext_mem_steps"] = len(rows)
-            pid = busiest_pid
-            if pid is None or not any(_int(r, "pid") == pid for r in rows):
-                pid = _int(max(rows, key=lambda r: _int(r, "vmhwm_mb")), "pid")
-            curve = sorted([_int(r, "t_ms"), _int(r, "vmhwm_mb")]
-                           for r in rows if _int(r, "pid") == pid)
-            if curve:
-                props["ext_mem_timeline"] = curve
-                props["ext_time_to_peak_ms"] = curve[-1][0]
-
-
 class SearchParser(Parser):
     """
     Goal found at: 0.00365
@@ -213,7 +136,6 @@ class SearchParser(Parser):
         self.add_function(add_coverage)
         self.add_function(out_of_time)
         self.add_function(out_of_memory)
-        self.add_function(collect_external_memory)
         self.add_function(
             compute_total_time_s
         )  # has to come before translating search_time to ms
